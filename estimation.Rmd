@@ -2,7 +2,7 @@
 title: "Software Estimation with Bayesian Regression"
 author: "Chris Davey"
 date: "10/23/2016"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
@@ -522,6 +522,10 @@ legend("topleft", legend=c("generated", "original"), fill=topo.colors(2))
 
 par(old.par)
 
+```
+
+```{r, echo=FALSE}
+
 old.par <- par(mfrow=c(1,2))
 
 boxplot(rConf$totalDefects, data$totalDefects, col=topo.colors(2), xlab="totalDefects")
@@ -616,6 +620,9 @@ pA2 <- ggplot(plotData, aes(x=requirementCnt)) +
 
 multiplot(pA1,pA2)
 
+```
+
+```{r,echo=FALSE}
 boxplot(plotData$predictedWaitTime, plotData$simulatedWaitTime, plotData$actualHours, col=topo.colors(3),
         main="Comparison of recordedHrs target variable")
 legend("topleft", legend=c("predicted", "simulated", "original"), fill=topo.colors(3))
@@ -648,7 +655,16 @@ p4 <- ggplot(plotData, aes(x=residuals)) +
 
 multiplot(p1, p2)
 
+```
+
+
+```{r,echo=FALSE}
+
 multiplot(p3, p4)
+
+```
+
+```{r,echo=FALSE}
 
 scale <- function(y) {
   y*test$yscale + test$ycenter
