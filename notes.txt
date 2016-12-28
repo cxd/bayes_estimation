@@ -1,0 +1,15 @@
+
+
+Notes on function point estimation:
+
+https://www.tutorialspoint.com/estimation_techniques/estimation_techniques_function_points.htm
+
+Note in the data collected by hand this information has been estimated as number of significant requirements.
+
+The data is derived from multiple sources.
+
+1. the project tom data is derived from manual data collection from projects at work. This data collection was done during the research phase of a separate project I was working on that investigated use of bayesian regression with different applications, one to software estimation and the other to estimated wait time for call centre data.
+
+2. The tera-promise pages has good resources links to much more detailed papers on the topic of software estimation. Interestingly the application of regression models to extract key predictors is of value and a number of papers at this source take different approaches in this regard.
+
+http://openscience.us/repo/effort/isbsg/cosmic.html
