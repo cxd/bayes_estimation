@@ -21,6 +21,13 @@ bayes_least_squares_uninform_prior <- function(data, explainCol, targetCol, zsca
   ys <- apply(Y, 2, sd)
   xc <- apply(X, 2, mean)
   xs <- apply(X, 2, sd)
+  
+  result <- list()
+  result$ycenter <- yc
+  result$yscale <- ys
+  result$xcenter <- xc
+  result$xscale <- xs
+  
   if (zscale==TRUE) {
     Y <- scale(Y)
     X <- scale(X)
@@ -53,7 +60,6 @@ bayes_least_squares_uninform_prior <- function(data, explainCol, targetCol, zsca
   sSqr <- (1/(abs(n-k)) * t(Y-X%*%B)%*%(Y-X%*%B))[1,1]
   prior <- 1/(sigma^2)
   
-  result <- list()
   result$isScaled <- zscale
   result$sSqr <- sSqr
   result$sigma <- sigma
@@ -124,8 +130,8 @@ bayes_least_squares_uninform_prior <- function(data, explainCol, targetCol, zsca
     b <- qmvt(alpha/2,delta=as.numeric(beta),sigma=Cov,tail="upper", df=result$nu) 
     u <- max(a$quantile,b$quantile)
     l <- min(a$quantile,b$quantile)
-    betaL <- beta - l*sqrt(test$sSqr)
-    betaU <- beta + u*sqrt(test$sSqr)
+    betaL <- beta - l*sqrt(result$sSqr)
+    betaU <- beta + u*sqrt(result$sSqr)
     conf <- list()
     conf$beta <- beta
     conf$betaU <- betaU
@@ -175,7 +181,8 @@ bayes_least_squares_uninform_prior <- function(data, explainCol, targetCol, zsca
    xc <- apply(X, 2, mean)
    xs <- apply(X, 2, sd)
    
-   result2 <- result
+   result2 <- list()
+   
    result2$isScaled <- result$isScaled
    
    if (result$isScaled) {
@@ -186,27 +193,27 @@ bayes_least_squares_uninform_prior <- function(data, explainCol, targetCol, zsca
      ys <- attr(Y, "scaled:scale")
      xc <- attr(X, "scaled:center")
      xs <- attr(X, "scaled:scale")
-     
-     n1 <- result$n
-     n2 <- nrow(X)
-     
-     s1 <- result$yscale^2
-     s2 <- ys^2
-     mu1 <- result$ycenter
-     mu2 <- yc
-     result2$ycenter <- (mu1+mu2)/2
-     muC <- result$ycenter
-     result2$yscale <- sqrt( (n1*(s1 + (mu1 - muC)^2) + n2*(s2 + (mu2 - muC)^2))/(n1+n2) )
-     
-     s1 <- result$xscale^2
-     s2 <- xs^2
-     mu1 <- result$xcenter
-     mu2 <- xc
-     result2$xcenter <- (mu1+mu2)/2
-     muC <- result$xcenter
-     result2$xscale <- sqrt( (n1*(s1 + (mu1 - muC)^2) + n2*(s2 + (mu2 - muC)^2))/(n1+n2) )
-     
-   }
+   } 
+   # Update the scale parameters
+   n1 <- result$n
+   n2 <- nrow(X)
+   
+   s1 <- result$yscale^2
+   s2 <- ys^2
+   mu1 <- result$ycenter
+   mu2 <- yc
+   result2$ycenter <- (mu1+mu2)/2
+   muC <- result$ycenter
+   result2$yscale <- sqrt( (n1*(s1 + (mu1 - muC)^2) + n2*(s2 + (mu2 - muC)^2))/(n1+n2) )
+   
+   s1 <- result$xscale^2
+   s2 <- xs^2
+   mu1 <- result$xcenter
+   mu2 <- xc
+   result2$xcenter <- (mu1+mu2)/2
+   muC <- result$xcenter
+   result2$xscale <- sqrt( (n1*(s1 + (mu1 - muC)^2) + n2*(s2 + (mu2 - muC)^2))/(n1+n2) )
+   
    Yhat <- X%*%result$B
    # update the sigma parameter for the sample
    sSqr <- result$sSqr + 1/(nrow(X) - ncol(X)) * t(Y-Yhat)%*%(Y-Yhat)
@@ -245,6 +252,25 @@ bayes_least_squares_uninform_prior <- function(data, explainCol, targetCol, zsca
    # store the additional data
    result2$X <- rbind(result$X, X)
    result2$Y <- rbind(result$Y, Y)
+   
+   # assign the functions to the model
+   result2$scaleY <- result$scaleY
+   result2$scaleX <- result$scaleX
+   result2$predictY <- result$predictY
+   result2$sigmaPosterior <- result$sigmaPosterior
+   result2$randSigmaPosterior <- result$randSigmaPosterior
+   result2$randBetaPosterior <- result$randBetaPosterior
+   result2$betaConfInterval <- result$betaConfInterval
+   result2$betaConfData <- result$betaConfData
+   result2$applyUpdateRules <- result$applyUpdateRules
+   result2$yJointPosteriorSimulate <- result$yJointPosteriorSimulate
+   result2$yPredictivePosteriorSimulate <- result$yPredictivePosteriorSimulate
+   result2$Eppd <- result$Eppd
+   result2$WAIC <- result$WAIC
+   result2$predictedResiduals <- result$predictedResiduals
+   result2$plotPredictedResiduals <- result$plotPredictedResiduals
+   result2$yPredictiveConfidence <- result$yPredictiveConfidence
+   
    
    # return updated model
    result2

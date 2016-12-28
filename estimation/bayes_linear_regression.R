@@ -187,26 +187,29 @@ bayes_least_squares_uninform_prior <- function(data, explainCol, targetCol, zsca
      xc <- attr(X, "scaled:center")
      xs <- attr(X, "scaled:scale")
      
-     n1 <- result$n
-     n2 <- nrow(X)
      
-     s1 <- result$yscale^2
-     s2 <- ys^2
-     mu1 <- result$ycenter
-     mu2 <- yc
-     result2$ycenter <- (mu1+mu2)/2
-     muC <- result$ycenter
-     result2$yscale <- sqrt( (n1*(s1 + (mu1 - muC)^2) + n2*(s2 + (mu2 - muC)^2))/(n1+n2) )
      
-     s1 <- result$xscale^2
-     s2 <- xs^2
-     mu1 <- result$xcenter
-     mu2 <- xc
-     result2$xcenter <- (mu1+mu2)/2
-     muC <- result$xcenter
-     result2$xscale <- sqrt( (n1*(s1 + (mu1 - muC)^2) + n2*(s2 + (mu2 - muC)^2))/(n1+n2) )
-     
-   }
+   } 
+   # Update the scale parameters
+   n1 <- result$n
+   n2 <- nrow(X)
+   
+   s1 <- result$yscale^2
+   s2 <- ys^2
+   mu1 <- result$ycenter
+   mu2 <- yc
+   result2$ycenter <- (mu1+mu2)/2
+   muC <- result$ycenter
+   result2$yscale <- sqrt( (n1*(s1 + (mu1 - muC)^2) + n2*(s2 + (mu2 - muC)^2))/(n1+n2) )
+   
+   s1 <- result$xscale^2
+   s2 <- xs^2
+   mu1 <- result$xcenter
+   mu2 <- xc
+   result2$xcenter <- (mu1+mu2)/2
+   muC <- result$xcenter
+   result2$xscale <- sqrt( (n1*(s1 + (mu1 - muC)^2) + n2*(s2 + (mu2 - muC)^2))/(n1+n2) )
+   
    Yhat <- X%*%result$B
    # update the sigma parameter for the sample
    sSqr <- result$sSqr + 1/(nrow(X) - ncol(X)) * t(Y-Yhat)%*%(Y-Yhat)

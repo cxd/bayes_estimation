@@ -403,16 +403,24 @@ The first plot examines the first two dimensions of the parameter space of the $
 ## predictor length
 len=40
 
+```
+
+
+```{r,echo=T}
+
 ## columns 1:4 will be the predictors
 xcols <- 1:4
-# pmBudgetHrs=18
+# target column is 5
 ycol <- c(5)
 test <- bayes_least_squares_uninform_prior(data, xcols, ycol, zscale=TRUE)
+
+```
+
+```{r,echo=FALSE}
 
 ## the model is built now estimate the HPD
 rBeta1 <- test$randBetaPosterior(test, test$sSqr, len)
 d2 <- test$betaConfData(test, test$sSqr,len, names= c("B1", "B2", "B3", "B4", "prob"))
-
 
 ```
 
@@ -494,7 +502,7 @@ for the beta-parameter, by doing so we can obtain expected values for the mean o
 by transforming the beta parameters back into the predictor parameters (this is done via scaling and offsetting, which have been stored during the training procedure). It gives an indication of the distribution
 that the model has defined for the expected values of the predictors.
 
-```{r,echo=FALSE}
+```{r}
 len <- 100
 d2 <- test$betaConfData(test, test$sSqr,len, names= c("B1", "B2", "B3", "B4", "prob"))
 
@@ -503,6 +511,10 @@ rConf = data.frame(b1=d2[,1]*test$xscale[1] + test$xcenter[1],
                    b3=d2[,3]*test$xscale[3] + test$xcenter[3],
                    b4=d2[,4]*test$xscale[4] + test$xcenter[4])
 colnames(rConf) <- colnames(data)[1:4]
+
+```
+
+```{r,echo=FALSE}
 
 #ggpairs(data=rConf,
 #        upper=list(continuous="density"),
@@ -555,15 +567,18 @@ This also provides some insight into how the model may be used in a generative m
 Additionally it is possible to demonstrate the use of prediction of the model using the parameters derived from the non-informative prior. The prediction of the current data set is shown in the first plot, and a simulation of the predictive posterior
 generated from the multivariate normal distribution from the posterior parameters is shown below.
 
-```{r, echo=FALSE}
-
+```{r}
 len <- 1000
-
 X1 <- data[,xcols]
 Y1 <- data[,ycol]
 ## investigate the prediction
 Ypred <- test$predictY(test, X1)
 Ypred1 <- test$yPredictivePosteriorSimulate(test,X1, len)
+
+```
+
+```{r, echo=FALSE}
+
 Ys <- (Y1 - test$ycenter)/test$yscale
 
 residual <- Ypred - Ys
@@ -666,24 +681,301 @@ multiplot(p3, p4)
 
 ```{r,echo=FALSE}
 
-scale <- function(y) {
+scaleF <- function(y) {
   y*test$yscale + test$ycenter
 }
 
 ms1 <- sum((Ypred - Ys)^2) / nrow(Ypred)
-scaledms1 <- sum((scale(t(Ypred)) - scale(Ys))^2) / nrow(Ypred)
+scaledms1 <- sum((scaleF(t(Ypred)) - scaleF(Ys))^2) / nrow(Ypred)
 ms2 <- sum((Ypred1[minIdx,] - Ys)^2) / nrow(Ypred1)
-scaledms2 <- sum((scale(Ypred1[minIdx,]) - scale(Ys))^2) / nrow(Ypred1)
+scaledms2 <- sum((scaleF(Ypred1[minIdx,]) - scaleF(Ys))^2) / nrow(Ypred1)
 
 print("MSE for prediction and simulation, both unscaled and scaled")
-data.frame(mse1=ms1, scaledmse1=scaledms1, simmse2=ms2, simscaledmse2=scaledms2)
-
+model1Mse <- data.frame(mse1=ms1, scaledmse1=scaledms1, simmse2=ms2, simscaledmse2=scaledms2)
+model1Mse
 ```
 
 Based on the MSE alone, it suggests that it is possible to gain a more accurate estimate through the use of simulation, although the distribution of the simulation may be quite varied and would require a selection criteria for evaluating each simulation. It may be possible using the confidence bounds of the distribution to find a simulation that matches closely against the mean for the expected distribution in calculating an error, instead of the target variable directly.
 
+## Updating the Model.
+
+In the case where we have additional observations it is possible to update the model. Unfortunately in the case
+of the software estimation domain we do not have available to us additional data, as further data collection
+is required, however in order to demonstrate the procedure, it is possible to use the model in a generative
+manner to create both the new dataset and the new target variable. This generated data set is drawn from the
+parameter space in the same manner as described above.
+
+```{r}
+len <- 100
+d2 <- test$betaConfData(test, test$sSqr,len, names= c("B1", "B2", "B3", "B4", "prob"))
+
+newData = data.frame(b1=d2[,1]*test$xscale[1] + test$xcenter[1],
+                   b2=d2[,2]*test$xscale[2] + test$xcenter[2],
+                   b3=d2[,3]*test$xscale[3] + test$xcenter[3],
+                   b4=d2[,4]*test$xscale[4] + test$xcenter[4])
+colnames(newData) <- colnames(data)[1:4]
+newY <- test$predictY(test, newData)
+newY <- newY*test$yscale + test$ycenter
+newData <- cbind(newData, data.frame(recordedHrs=newY))
+```
+
+Interestingly the generated data for the target variable appears to have a negative relationship with the estimated Hrs attribute, however appears to demonstrate a strong linear relationship with the teamSize, whilst only a slight linear relation with functionPoints, and even less of a relation with totalDefects. 
+
+```{r, echo=FALSE}
+plotScatter(newData, 1:4, 5)
+summary(newData)
+```
+
+In order to update the model the new data is applied as follows.
 
 
+```{r}
+Xnew <- as.matrix(newData[,1:4])
+Ynew <- as.matrix(data.frame(Y=newData[,5]))
+updateModel <- test$applyUpdateRules(test, Ynew, Xnew)
+
+```
+
+
+Once the model has been updated we can also examine the confidence interval for the target variable
+
+```{r, echo=FALSE}
+# 95%
+NbetaConf1 <- updateModel$betaConfInterval(updateModel, updateModel$sSqr,0.05)
+
+Ylower2 <- updateModel$X%*%NbetaConf1$betaL
+Ylower2 <- Ylower2*updateModel$yscale + updateModel$ycenter
+
+Yupper2 <- updateModel$X%*%NbetaConf1$betaU
+Yupper2 <- Yupper2*updateModel$yscale + updateModel$ycenter
+Ymean2 <- updateModel$X%*%NbetaConf1$beta
+Ymean2 <- Ymean2*updateModel$yscale + updateModel$ycenter
+
+plotData2 <- data.frame(mu=Ymean, upper=Yupper, lower=Ylower)
+
+plotData3 <- data.frame(lower=Ylower2[,1], upper=Yupper2[,1])
+
+min1 <- min(Ylower, Yupper)
+max1 <- max(Ylower, Yupper)
+# , 
+hist(Ylower2, breaks=len/2, col=rgb(0,0,1,1/4), main="95% CI for E[recordedHrs]", xlab="E[recordedHrs]")
+hist(Yupper2, breaks=len/2, col=rgb(1,0,0,1/4), add=T)
+
+```
+
+```{r,echo=FALSE}
+
+boxplot(plotData2$lower, plotData2$upper, plotData3$lower, plotData3$upper, data$recordedHrs, main="E[recordedHrs] at 95% CI",
+        col=rainbow(5), names=c("mode1lower", "model1upper", "model2lower", "model2upper", "original"))
+legend("topleft", legend=c("mode1lower", "model1upper", "model2lower", "model2upper", "original"), fill=rainbow(5))
+```
+
+```{r, echo=FALSE}
+print("Summary of original recordedHrs")
+summary(data$recordedHrs)
+
+print("Summary of original model CI recordedHrs")
+summary(plotData2)
+
+
+print("Summary of updated model CI recordedHrs")
+summary(plotData3)
+```
+
+The distribution of the expected target variable has narrowed somewhat, this effect may be expected due to the use of data that was generated from the previous model.
+
+Similarly the effect can be observed on the expected distributions of the predictors.
+
+
+```{r}
+len <- 100
+d2 <- updateModel$betaConfData(updateModel, updateModel$sSqr,len, names= c("B1", "B2", "B3", "B4", "prob"))
+
+rConf2 = data.frame(b1=d2[,1]*updateModel$xscale[1] + updateModel$xcenter[1],
+                   b2=d2[,2]*updateModel$xscale[2] + updateModel$xcenter[2],
+                   b3=d2[,3]*updateModel$xscale[3] + updateModel$xcenter[3],
+                   b4=d2[,4]*updateModel$xscale[4] + updateModel$xcenter[4])
+colnames(rConf2) <- colnames(data)[1:4]
+
+```
+
+```{r,echo=FALSE}
+
+#ggpairs(data=rConf,
+#        upper=list(continuous="density"),
+#        lower=list(params=list(size=2)),
+#        title="Beta Density for E[X] over 100 Simulations on the 95% confidence interval",
+#        params=list(labelSize=8),
+#        columnLabels=colnames(rConf))
+
+## produce box plots for the items
+old.par <- par(mfrow=c(1,2))
+options(scipen=5)
+boxplot(rConf$functionPoints, rConf2$functionPoints, data$functionPoints, col=topo.colors(3), xlab="functionPoints")
+legend("topleft", legend=c("1stmodel", "2ndmodel", "original"), fill=topo.colors(3))
+
+boxplot(rConf$teamSize, rConf2$teamSize, data$teamSize, col=topo.colors(3), xlab="teamSize")
+legend("topleft", legend=c("1stmodel", "2ndmodel", "original"), fill=topo.colors(3))
+
+par(old.par)
+
+```
+
+```{r, echo=FALSE}
+
+old.par <- par(mfrow=c(1,2))
+
+boxplot(rConf$totalDefects, rConf2$totalDefects, data$totalDefects, col=topo.colors(3), xlab="totalDefects")
+legend("topleft", legend=c("1stmodel", "2ndmodel", "original"), fill=topo.colors(3))
+
+boxplot(rConf$estimatedHrs, rConf2$estimatedHrs, data$estimatedHrs, col=topo.colors(3), xlab="estimatedHrs")
+legend("topleft", legend=c("1stmodel", "2ndmodel", "original"), fill=topo.colors(3))
+
+par(old.par)
+```
+
+Interestingly there is some broadening of the predictor distribution visible as a result of the update.
+
+In comparing the two models it is possible to evaluate predictions against the original data.
+
+
+```{r}
+len <- 1000
+X1 <- data[,xcols]
+Y1 <- data[,ycol]
+
+functionPoints <- data$functionPoints
+
+## investigate the prediction
+Ypred2 <- updateModel$predictY(updateModel, X1)
+Ypred3 <- updateModel$yPredictivePosteriorSimulate(updateModel,X1, len)
+
+```
+
+```{r, echo=FALSE}
+
+Ys2 <- (Y1 - updateModel$ycenter)/updateModel$yscale
+
+residual2 <- Ypred2 - Ys2
+residual3 <- Ypred3 - Ys2 
+
+mse3 <- sapply(1:nrow(Ypred2), function(i) { sum(((Ypred2[i,] - Ys2)^2) / nrow(Ypred2)) })
+mse4 <- sapply(1:nrow(Ypred3), function(i) { sum(((Ypred3[i,] - Ys2)^2) / nrow(Ypred3)) })
+
+mseData3 <- data.frame(MSE=mse3, prediction=1:nrow(Ypred2))
+mseData4 <- data.frame(MSE=mse4, simulation=1:nrow(Ypred3))
+
+minIdx3 <- which(mse3 %in% min(mse3))
+
+
+YpredScaled <- Ypred2*updateModel$yscale + updateModel$ycenter
+Ypred1Scaled <- (Ypred3[minIdx3,]*updateModel$yscale) + updateModel$ycenter
+residualScaled <- residual3[minIdx3,]*updateModel$yscale + updateModel$ycenter
+stdResidualScaled <- residual2*updateModel$yscale + updateModel$ycenter
+
+plotData5 <- data.frame(requirementCnt=functionPoints, 
+                       stdResidual=residual2[,1],
+                       stdResidualScaled=stdResidualScaled[,1],
+                       residuals=residual3[minIdx3,],
+                       residualScaled=residualScaled,
+                       predictedWaitTime=YpredScaled[,1],
+                       simulatedWaitTime=Ypred1Scaled,
+                       actualHours=Y1)
+
+```
+
+
+```{r, echo=FALSE}
+
+## plot the prediction
+
+cols <- c("#000000", "#FF0000")
+labels <- c("actual", "predicted")
+
+cols2 <- c("#000000", "#FF00FF")
+labels2 <- c("actual", "simulated")
+
+
+pA3 <- ggplot(plotData5, aes(x=requirementCnt)) +
+  geom_point(aes(y=actualHours, col="actual")) +
+  geom_point(aes(y=predictedWaitTime, col="predicted"), shape=1) +
+  scale_colour_manual(values=cols, labels=labels) +
+  ggtitle("Original Data predicted hours on actual hours (model2)")
+
+pA4 <- ggplot(plotData5, aes(x=requirementCnt)) +
+  geom_point(aes(y=actualHours, col="actual")) +
+  geom_point(aes(y=simulatedWaitTime, col="simulated"), shape=1) +
+  scale_colour_manual(values=cols2, labels=labels2) +
+  ggtitle("Simulated hours on actual hours (model2)")
+
+multiplot(pA3,pA4)
+
+```
+
+In this case, it appears that the updated model may not be quite as accurate as the original model, and the MSE is comparatively larger for the predicted set (mse1, and scaledmse1). However in comparison of the mse generated on the simulated data these are equivalent.
+
+
+
+```{r,echo=FALSE}
+
+scaleF <- function(y) {
+  y*updateModel$yscale + updateModel$ycenter
+}
+
+ms1 <- sum((Ypred2 - Ys)^2) / nrow(Ypred)
+scaledms1 <- sum((scaleF(t(Ypred2)) - scaleF(Ys2))^2) / nrow(Ypred2)
+ms2 <- sum((Ypred3[minIdx3,] - Ys2)^2) / nrow(Ypred3)
+scaledms2 <- sum((scaleF(Ypred3[minIdx3,]) - scaleF(Ys2))^2) / nrow(Ypred3)
+
+print("MSE for prediction and simulation, both unscaled and scaled")
+model2Mse <- data.frame(mse1=ms1, scaledmse1=scaledms1, simmse2=ms2, simscaledmse2=scaledms2)
+models <- rbind(model1Mse, model2Mse)
+rownames(models) <- c("model1", "model2")
+models
+```
+
+## Model Evaluation
+
+After having trained two models the question arises, how do we know whether Model A is better than Model B or vice versa. The Mean Square Error is a point estimate method of measuring the accuracy of the model, however additional approaches are available. One such approach is the __log pointwise predictive density__ which is a measure of the sample predictive density that is proportional to the mean square error when the model is normal with con- stant variance [3]. This measure is taken as a measure of information gain given the model.
+The model with the higher lppd is taken to have better predictive generalisation.
+
+$$
+lppd = log(E[p(y_i|\theta)])
+$$
+
+where $\theta_1,...,\theta_S$ are the model parameters and the distribution $p(y|\theta)$ is the joint posterior predictive distribution.
+
+A second property is calculated to adjust for any overfitting that may be present in the model, this is known as the __widely applicable information criterion__ (WAIC). This is calculated as
+$$
+WAIC = 2\sum_{i=1}^N \left(\log(E[p(y_i|\theta)]) - E[\log p(y_i|\theta)]\right)
+$$
+
+the __expected log pointwise predictive density__ is then calculated as the difference between the LPPD and WAIC.
+
+In the example below, the data set for the original and the new data is combined, and a random sample of 50 examples is taken to calculate the ELPPD and the WAIC measures.
+
+```{r}
+
+X2 <- rbind(data[,1:4], newData[,1:4])
+Y2 <- rbind(data.frame(y=data[,5]), data.frame(y=newData[,5]))
+indexes <- sample(nrow(X2), 50)
+waic <- updateModel$WAIC(test, updateModel, Y2[indexes,], X2[indexes,])
+
+```
+
+```{r, echo=FALSE}
+compare1 <- data.frame(
+  modelEppd=c(waic$modelAwaic, waic$modelBwaic),
+  modelAdjEppd=c(waic$modelAadjeppd1, waic$modelBadjeppd1),
+  modelWaic=c(waic$modelAwaic, waic$modelBwaic)
+)
+rownames(compare1) <- c("model1", "model2")
+print("Comparison on original and new data")
+compare1
+
+```
+
+Based on this assessment, the second model seems to indicate that it should be the better model for use generalisation over the data set. However this results due to the larger population of data from the second data set having being generated artificially.
 
 
 ## References
