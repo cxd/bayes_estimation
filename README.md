@@ -12,6 +12,11 @@ a number of simulations in order to produce a distribution of potential estimate
 The distribution of the target variable is summarised and its histogram is plotted in order to provide an
 indication as to the likely values for the project hours based on the model.
 
+Note that the attributes available as input features are derived due to the limited availability of data
+for this example, however where additional attributes are available, it is certainly possible to
+generate a new model to suite the extended attributes. Additionally, the domain of software project duration
+estimation serves only as an example of the application for the technique. The method can be extended to model predictors for other kinds of data sets and can be extended to perform logistic regression for binary classification if required. This repository provides a working prototype of the method, and explanation of the approach.
+
 ![UI Screenshot](ui_screenshot.png)
 
 The model can be generated using the R script "setup_and_train.R" and the initial data set can be updated with
