@@ -89,7 +89,7 @@ Only complete cases of interest are maintained in the merged data set, which unf
 However, it would be possible to merge additional data sets should they also contain suitable attributes that would map into the properties above as a minimal analsys.
 Further analysis is also worth pursuing if additional attributes were available, and common accross multiple data sets.
 
-Note that there is some speculation that having data available from multiple organisations in aide of effort estimation may not be as an effective means of estimation as having good records from within the same company performing the estimation (refer to [Deng Kefu](http://aut.researchgateway.ac.nz/handle/10292/473)). Hence good data collection on project size, quality metrics, effort estimates and actual effort would prove valuable for estimation purposes in the long run. As this data would reflect the internal processes and practices held by the company undertaking the collection. 
+Note that there is some speculation that having data available from multiple organisations in aide of effort estimation may not be as an effective means of estimation as having good records from within the same company performing the estimation (refer to [Deng Kefu](http://aut.researchgateway.ac.nz/handle/10292/473) [4]). Hence good data collection on project size, quality metrics, effort estimates and actual effort would prove valuable for estimation purposes in the long run. As this data would reflect the internal processes and practices held by the company undertaking the collection. 
 
 This article demonstrates some methods for analysing this data, unfortunately the conclusions drawn with this limited data set are merely speculative. However, the techniques can be applied where there is sufficient data available.  
 
@@ -985,5 +985,6 @@ Based on this assessment, the second model seems to indicate that it should be t
 
 3. Gelman Andrew, Carlin John B, Stern Hal S, Dunson David B, Vehtari Aki, Rubin Donald B, Bayesian Data Analysis. Chapman and Hall/CRC Press Taylor and Francis Group 3rd edition, 2013
 
+4. Deng,Kefu (2009). _The value and validity of software effort estimation models built from a multiple organization data set_ (Masters Thesis). Retrieved from http://hdl.handle.net/10292/473 
 
 
